@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 # Fuso horário do Brasil/Brasília
 FUSO = ZoneInfo('America/Sao_Paulo')
 
-st.set_page_config(page_title="Vólei - Lista de Presença", page_icon="🏐")
+st.set_page_config(page_title="Vôlei - Lista de Presença", page_icon="🏐")
 
 # --- Conexão com a Base de Dados ---
 conn = st.connection("postgresql", type="sql")
@@ -116,7 +116,7 @@ def get_historico_por_data(data_jogo):
     return conn.query(f"SELECT * FROM historico_jogadores WHERE data_jogo = '{data_jogo}' ORDER BY status, categoria, arquivado_em ASC", ttl=0)
 
 # --- INICIALIZAÇÃO E CARREGAMENTO VISUAL ---
-with st.spinner("🏐 A aquecer a quadra e a ligar à base de dados..."):
+with st.spinner("🏐 Conectando ao base de dados..."):
     init_db()
     config_atual = get_config()
     df_todos = get_jogadores()
@@ -157,9 +157,9 @@ else:
     novo_limite = st.sidebar.text_input("Horário Limite (HH:MM)", value=config_atual['horario_limite'])
     novo_pix = st.sidebar.text_input("Chave PIX", value=config_atual['chave_pix'])
     
-    if st.sidebar.button("Guardar Configurações"):
+    if st.sidebar.button("Salvar Configurações"):
         update_config(novo_limite, novo_pix, nova_data.strftime("%Y-%m-%d"))
-        st.sidebar.success("Guardado com sucesso!")
+        st.sidebar.success("Salvo com sucesso!")
         st.rerun()
         
     if st.sidebar.button("Sair"):
@@ -167,7 +167,7 @@ else:
         st.rerun()
 
 # --- INTERFACE PRINCIPAL ---
-st.title("🏐 Lista de Presença - Vólei")
+st.title("🏐 Lista de Presença - Vôlei")
 st.markdown(f"**Data do Jogo:** {data_do_jogo.strftime('%d/%m/%Y')} | **Inscrições até:** {config_atual['horario_limite']}")
 
 agora_str = agora.strftime("%H:%M")
@@ -188,7 +188,7 @@ else:
             nome_limpo = nome_input.strip()
             
             if not nome_limpo:
-                st.warning("Por favor, introduza um nome válido.")
+                st.warning("Por favor, insira um nome válido.")
             else:
                 # Verificação de nomes duplicados (ignorando maiúsculas/minúsculas)
                 nomes_existentes = df_todos['nome'].str.lower().str.strip().tolist() if not df_todos.empty else []
