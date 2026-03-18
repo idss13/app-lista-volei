@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 from zoneinfo import ZoneInfo
 
-# Fuso horário do Brasil/Brasília
+# Fuso horário do Brasil/Brasília (para não haver conflitos de horário no servidor)
 FUSO = ZoneInfo('America/Sao_Paulo')
 
 st.set_page_config(page_title="Vôlei - Lista de Presença", page_icon="🏐")
@@ -22,6 +22,7 @@ def init_db():
                 nome VARCHAR(100) NOT NULL,
                 categoria VARCHAR(20) NOT NULL,
                 status VARCHAR(20) NOT NULL,
+                pago BOOLEAN DEFAULT FALSE,
                 criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """))
@@ -31,6 +32,7 @@ def init_db():
                 nome VARCHAR(100) NOT NULL,
                 categoria VARCHAR(20) NOT NULL,
                 status VARCHAR(20) NOT NULL,
+                pago BOOLEAN DEFAULT FALSE,
                 data_jogo DATE NOT NULL,
                 arquivado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -45,7 +47,7 @@ def init_db():
         """))
         s.commit()
 
-    # Passo 2: Atualizar tabela antiga (se necessário)
+    # Passo 2: Atualizar tabelas antigas (Migration)
     with conn.session as s:
         try:
             s.execute(text("ALTER TABLE config ADD COLUMN data_jogo VARCHAR(10)"))
@@ -55,23 +57,45 @@ def init_db():
             s.commit()
         except Exception:
             s.rollback()
+            
+    with conn.session as s:
+        try:
+            s.execute(text("ALTER TABLE jogadores ADD COLUMN pago BOOLEAN DEFAULT FALSE"))
+            s.commit()
+        except Exception:
+            s.rollback()
+            
+    with conn.session as s:
+        try:
+            s.execute(text("ALTER TABLE historico_jogadores ADD COLUMN pago BOOLEAN DEFAULT FALSE"))
+            s.commit()
+        except Exception:
+            s.rollback()
+            
+    with conn.session as s:
+        try:
+            # Adiciona a coluna para o valor financeiro por jogador
+            s.execute(text("ALTER TABLE config ADD COLUMN valor_jogador NUMERIC(10,2) DEFAULT 0.00"))
+            s.commit()
+        except Exception:
+            s.rollback()
 
     # Passo 3: Inserir configuração padrão
     with conn.session as s:
         count = s.execute(text("SELECT COUNT(*) FROM config")).scalar()
         if count == 0:
             hoje_str = datetime.now(FUSO).strftime("%Y-%m-%d")
-            s.execute(text("INSERT INTO config (id, horario_limite, chave_pix, data_jogo) VALUES (1, '20:00', 'Sua chave PIX aqui', :hj)"), {"hj": hoje_str})
+            s.execute(text("INSERT INTO config (id, horario_limite, chave_pix, data_jogo, valor_jogador) VALUES (1, '20:00', 'Sua chave PIX aqui', :hj, 20.00)"), {"hj": hoje_str})
             s.commit()
 
 def get_config():
     df = conn.query("SELECT * FROM config WHERE id = 1", ttl=0)
     return df.iloc[0]
 
-def update_config(limite, pix, data_jogo):
+def update_config(limite, pix, data_jogo, valor_jogador):
     with conn.session as s:
-        s.execute(text("UPDATE config SET horario_limite = :limite, chave_pix = :pix, data_jogo = :dt WHERE id = 1"), 
-                  {"limite": limite, "pix": pix, "dt": data_jogo})
+        s.execute(text("UPDATE config SET horario_limite = :limite, chave_pix = :pix, data_jogo = :dt, valor_jogador = :valor WHERE id = 1"), 
+                  {"limite": limite, "pix": pix, "dt": data_jogo, "valor": valor_jogador})
         s.commit()
 
 def get_jogadores():
@@ -79,8 +103,14 @@ def get_jogadores():
 
 def adicionar_jogador(nome, categoria, status):
     with conn.session as s:
-        s.execute(text("INSERT INTO jogadores (nome, categoria, status) VALUES (:nome, :categoria, :status)"),
+        s.execute(text("INSERT INTO jogadores (nome, categoria, status, pago) VALUES (:nome, :categoria, :status, FALSE)"),
                   {"nome": nome, "categoria": categoria, "status": status})
+        s.commit()
+
+def alternar_pagamento(jogador_id, estado_pago):
+    with conn.session as s:
+        s.execute(text("UPDATE jogadores SET pago = :pago WHERE id = :id"), 
+                  {"pago": estado_pago, "id": int(jogador_id)})
         s.commit()
 
 def remover_jogador(jogador_id, categoria, era_oficial):
@@ -102,8 +132,8 @@ def remover_jogador(jogador_id, categoria, era_oficial):
 def arquivar_e_limpar_lista(data_do_jogo_str):
     with conn.session as s:
         s.execute(text("""
-            INSERT INTO historico_jogadores (nome, categoria, status, data_jogo)
-            SELECT nome, categoria, status, :dt FROM jogadores
+            INSERT INTO historico_jogadores (nome, categoria, status, pago, data_jogo)
+            SELECT nome, categoria, status, pago, :dt FROM jogadores
         """), {"dt": data_do_jogo_str})
         s.execute(text("DELETE FROM jogadores"))
         s.commit()
@@ -116,7 +146,7 @@ def get_historico_por_data(data_jogo):
     return conn.query(f"SELECT * FROM historico_jogadores WHERE data_jogo = '{data_jogo}' ORDER BY status, categoria, arquivado_em ASC", ttl=0)
 
 # --- INICIALIZAÇÃO E CARREGAMENTO VISUAL ---
-with st.spinner("🏐 Conectando ao base de dados..."):
+with st.spinner("🏐 Conectando ao banco de dados..."):
     init_db()
     config_atual = get_config()
     df_todos = get_jogadores()
@@ -134,7 +164,7 @@ if hoje_data > data_do_jogo:
     if nova_data_jogo < hoje_data:
         nova_data_jogo = hoje_data
 
-    update_config(config_atual['horario_limite'], config_atual['chave_pix'], nova_data_jogo.strftime("%Y-%m-%d"))
+    update_config(config_atual['horario_limite'], config_atual['chave_pix'], nova_data_jogo.strftime("%Y-%m-%d"), config_atual.get('valor_jogador', 0))
     st.toast("🧹 Lista da semana anterior foi arquivada no histórico!")
     st.rerun()
 
@@ -157,8 +187,12 @@ else:
     novo_limite = st.sidebar.text_input("Horário Limite (HH:MM)", value=config_atual['horario_limite'])
     novo_pix = st.sidebar.text_input("Chave PIX", value=config_atual['chave_pix'])
     
+    # Novo campo para o valor financeiro
+    valor_bd = float(config_atual.get('valor_jogador', 20.0))
+    novo_valor = st.sidebar.number_input("Valor por Jogador (R$)", value=valor_bd, step=1.0, format="%.2f")
+    
     if st.sidebar.button("Salvar Configurações"):
-        update_config(novo_limite, novo_pix, nova_data.strftime("%Y-%m-%d"))
+        update_config(novo_limite, novo_pix, nova_data.strftime("%Y-%m-%d"), novo_valor)
         st.sidebar.success("Salvo com sucesso!")
         st.rerun()
         
@@ -168,6 +202,20 @@ else:
 
 # --- INTERFACE PRINCIPAL ---
 st.title("🏐 Lista de Presença - Vôlei")
+
+# --- PAINEL FINANCEIRO EXCLUSIVO PARA O ADMIN ---
+if st.session_state.admin_logado:
+    st.success("💰 **Resumo Financeiro da Partida Atual**")
+    total_pagantes = len(df_todos[df_todos['pago'] == True])
+    valor_individual = float(config_atual.get('valor_jogador', 0.0))
+    total_arrecadado = total_pagantes * valor_individual
+    
+    col_met1, col_met2, col_met3 = st.columns(3)
+    col_met1.metric("Jogadores Pagos", f"{total_pagantes} pessoas")
+    col_met2.metric("Valor por Jogador", f"R$ {valor_individual:.2f}".replace('.', ','))
+    col_met3.metric("Total Arrecadado", f"R$ {total_arrecadado:.2f}".replace('.', ','))
+    st.divider()
+
 st.markdown(f"**Data do Jogo:** {data_do_jogo.strftime('%d/%m/%Y')} | **Inscrições até:** {config_atual['horario_limite']}")
 
 agora_str = agora.strftime("%H:%M")
@@ -188,9 +236,8 @@ else:
             nome_limpo = nome_input.strip()
             
             if not nome_limpo:
-                st.warning("Por favor, insira um nome válido.")
+                st.warning("Por favor, introduza um nome válido.")
             else:
-                # Verificação de nomes duplicados (ignorando maiúsculas/minúsculas)
                 nomes_existentes = df_todos['nome'].str.lower().str.strip().tolist() if not df_todos.empty else []
                 
                 if nome_limpo.lower() in nomes_existentes:
@@ -219,8 +266,20 @@ for cat in ['Levantador', 'Mulher', 'Homem']:
         st.caption("Nenhum jogador nesta categoria ainda.")
         
     for _, row in df_cat_oficial.iterrows():
-        col_nome, col_btn = st.columns([0.85, 0.15])
+        col_nome, col_pgto, col_btn = st.columns([0.5, 0.3, 0.2])
         col_nome.write(f"👤 {row['nome']}")
+        
+        if st.session_state.admin_logado:
+            pago = col_pgto.checkbox("Pago", value=row['pago'], key=f"pg_of_{row['id']}")
+            if pago != row['pago']:
+                alternar_pagamento(row['id'], pago)
+                st.rerun()
+        else:
+            if row['pago']:
+                col_pgto.markdown("✅ **Pago**")
+            else:
+                col_pgto.markdown("🔴 Pendente")
+                
         if col_btn.button("Remover", key=f"rem_oficial_{row['id']}"):
             remover_jogador(row['id'], cat, era_oficial=True)
             st.rerun()
@@ -235,8 +294,20 @@ if not df_espera.empty:
         if not df_cat_espera.empty:
             st.write(f"**{cat}:**")
             for i, row in enumerate(df_cat_espera.itertuples()):
-                col_esp_nome, col_esp_btn = st.columns([0.85, 0.15])
+                col_esp_nome, col_esp_pgto, col_esp_btn = st.columns([0.5, 0.3, 0.2])
                 col_esp_nome.write(f"{i+1}º - {row.nome}")
+                
+                if st.session_state.admin_logado:
+                    pago_esp = col_esp_pgto.checkbox("Pago", value=row.pago, key=f"pg_esp_{row.id}")
+                    if pago_esp != row.pago:
+                        alternar_pagamento(row.id, pago_esp)
+                        st.rerun()
+                else:
+                    if row.pago:
+                        col_esp_pgto.markdown("✅ **Pago**")
+                    else:
+                        col_esp_pgto.markdown("🔴 Pendente")
+                        
                 if col_esp_btn.button("Sair", key=f"rem_espera_{row.id}"):
                     remover_jogador(row.id, cat, era_oficial=False)
                     st.rerun()
@@ -244,6 +315,7 @@ if not df_espera.empty:
 
 st.subheader("💳 Pagamento da Quadra")
 st.info("Para garantir a sua vaga, realize o pagamento via PIX.")
+st.write(f"**Valor a pagar:** R$ {float(config_atual.get('valor_jogador', 0.0)):.2f}".replace('.', ','))
 st.write("**Copie a chave abaixo:**")
 st.code(config_atual['chave_pix'], language="text")
 
@@ -259,12 +331,15 @@ if st.session_state.admin_logado:
         data_selecionada = st.selectbox("Selecione a data do jogo", datas_disponiveis)
         df_historico = get_historico_por_data(data_selecionada)
         
+        df_historico['pago'] = df_historico['pago'].apply(lambda x: "✅ Sim" if x else "🔴 Não")
+        
         st.dataframe(
-            df_historico[['nome', 'categoria', 'status']],
+            df_historico[['nome', 'categoria', 'status', 'pago']],
             column_config={
                 "nome": "Nome do Jogador",
                 "categoria": "Posição",
-                "status": "Status Final"
+                "status": "Status Final",
+                "pago": "Pagou?"
             },
             hide_index=True,
             use_container_width=True
