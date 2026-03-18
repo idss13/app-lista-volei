@@ -14,8 +14,8 @@ conn = st.connection("postgresql", type="sql")
 
 # Inicialização das tabelas
 def init_db():
+    # Passo 1: Criar as tabelas (Transação 1)
     with conn.session as s:
-        # Tabela atual
         s.execute(text("""
             CREATE TABLE IF NOT EXISTS jogadores (
                 id SERIAL PRIMARY KEY,
@@ -25,7 +25,6 @@ def init_db():
                 criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """))
-        # Tabela de Histórico (NOVA)
         s.execute(text("""
             CREATE TABLE IF NOT EXISTS historico_jogadores (
                 id SERIAL PRIMARY KEY,
@@ -36,7 +35,6 @@ def init_db():
                 arquivado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """))
-        # Tabela de Configuração
         s.execute(text("""
             CREATE TABLE IF NOT EXISTS config (
                 id INT PRIMARY KEY,
@@ -45,15 +43,23 @@ def init_db():
                 data_jogo VARCHAR(10)
             );
         """))
-        
+        s.commit() # Salva a criação antes de qualquer outra tentativa
+
+    # Passo 2: Tentar atualizar a tabela antiga (Transação 2)
+    with conn.session as s:
         try:
             s.execute(text("ALTER TABLE config ADD COLUMN data_jogo VARCHAR(10)"))
+            s.commit()
+            
+            # Se deu certo (era um banco antigo), coloca a data de hoje
             hoje_str = datetime.now(FUSO).strftime("%Y-%m-%d")
             s.execute(text("UPDATE config SET data_jogo = :hj WHERE id = 1"), {"hj": hoje_str})
             s.commit()
         except Exception:
-            s.rollback()
+            s.rollback() # Se a coluna já existe, ele desfaz apenas o ALTER TABLE sem apagar as tabelas
 
+    # Passo 3: Inserir a configuração padrão, se estiver vazio (Transação 3)
+    with conn.session as s:
         count = s.execute(text("SELECT COUNT(*) FROM config")).scalar()
         if count == 0:
             hoje_str = datetime.now(FUSO).strftime("%Y-%m-%d")
