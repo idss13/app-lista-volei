@@ -144,13 +144,13 @@ if 'admin_logado' not in st.session_state:
 
 st.sidebar.title("⚙️ Área do Organizador")
 if not st.session_state.admin_logado:
-    senha = st.sidebar.text_input("Palavra-passe", type="password")
+    senha = st.sidebar.text_input("Senha", type="password")
     if st.sidebar.button("Entrar"):
         if senha == "admin123":
             st.session_state.admin_logado = True
             st.rerun()
         else:
-            st.sidebar.error("Palavra-passe incorreta!")
+            st.sidebar.error("Senha incorreta!")
 else:
     st.sidebar.success("Modo Organizador Ativo")
     nova_data = st.sidebar.date_input("Data do Jogo", value=data_do_jogo)
