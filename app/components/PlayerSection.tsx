@@ -12,15 +12,19 @@ type Player = {
   status: string
 }
 
-type Categoria = 'Levantador' | 'Jogador'
-
-// Limite de vagas oficiais por categoria — espelha a constante em lib/actions.ts
-const VAGAS: Record<Categoria, number> = { Levantador: 3, Jogador: 15 }
+type Categoria = 'Levantador' | 'Jogador' | 'Jogadora'
 
 // Rótulos com emoji exibidos nos badges de cada categoria
 const CATEGORY_LABELS: Record<Categoria, string> = {
   Levantador: '🏐 Levantador',
   Jogador: '🏃 Jogador',
+  Jogadora: '🏃‍♀️ Jogadora',
+}
+
+// Retorna o limite de vagas de cada categoria conforme a configuração do jogo.
+// Jogador perde 3 vagas quando Jogadoras estão habilitadas (reservadas para elas).
+function getVagas(comJogadoras: boolean): Record<Categoria, number> {
+  return { Levantador: 3, Jogador: comJogadoras ? 12 : 15, Jogadora: 3 }
 }
 
 // Extrai as iniciais do nome (até 2 palavras) para exibir no avatar circular
@@ -87,12 +91,14 @@ export function PlayerSection({
   categoria,
   players,
   isAdmin,
+  comJogadoras,
 }: {
   categoria: Categoria
   players: Player[]
   isAdmin: boolean
+  comJogadoras: boolean
 }) {
-  const vagas = VAGAS[categoria]
+  const vagas = getVagas(comJogadoras)[categoria]
   const oficiais = players.filter((p) => p.status === 'oficial')
   const pct = Math.min((oficiais.length / vagas) * 100, 100)
   const isFull = oficiais.length >= vagas

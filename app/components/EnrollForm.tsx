@@ -6,7 +6,13 @@ import { toast } from 'sonner'
 
 // Formulário de inscrição de jogadores.
 // Usa useActionState para integrar com a Server Action enrollPlayer sem JavaScript extra.
-export function EnrollForm({ inscricoesAbertas }: { inscricoesAbertas: boolean }) {
+export function EnrollForm({
+  inscricoesAbertas,
+  comJogadoras,
+}: {
+  inscricoesAbertas: boolean
+  comJogadoras: boolean
+}) {
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     enrollPlayer,
     null
@@ -39,8 +45,10 @@ export function EnrollForm({ inscricoesAbertas }: { inscricoesAbertas: boolean }
           autoComplete="off"
           style={{ flex: 2 }}
         />
+        {/* Jogadora só aparece quando o organizador habilitou vagas femininas */}
         <select name="categoria" className="form-select" style={{ flex: 1 }}>
           <option value="Jogador">Jogador</option>
+          {comJogadoras && <option value="Jogadora">Jogadora</option>}
           <option value="Levantador">Levantador</option>
         </select>
       </div>

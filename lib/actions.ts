@@ -7,8 +7,10 @@ import { cookies } from 'next/headers'
 // Tipo de retorno padrão das Server Actions — usado pelo useActionState nos componentes
 export type ActionState = { error?: string; success?: string } | null
 
-// Limite de vagas por categoria. Levantador tem vagas reduzidas pelo formato do jogo.
-const VAGAS = { Levantador: 3, Jogador: 15 } as const
+// Vagas fixas de Levantador e Jogadora (quando habilitada). Jogador varia conforme comJogadoras.
+const VAGAS_FIXAS = { Levantador: 3, Jogadora: 3 } as const
+const VAGAS_JOGADOR_SEM = 15  // vagas de Jogador quando não há Jogadoras
+const VAGAS_JOGADOR_COM = 12  // vagas de Jogador quando há Jogadoras (3 reservadas)
 
 // Retorna a data atual no fuso horário de Brasília no formato YYYY-MM-DD (locale 'sv' = ISO)
 function getBrazilDateStr(): string {
@@ -37,6 +39,7 @@ export async function getOrInitConfig() {
         chavePix: 'Sua chave PIX aqui',
         dataJogo: getBrazilDateStr(),
         local: '',
+        comJogadoras: false,
       },
     })
   }
@@ -144,12 +147,20 @@ export async function enrollPlayer(
   })
   if (existente) return { error: `O nome "${nome}" já está na lista!` }
 
+  // Bloqueia inscrição como Jogadora quando a categoria não está habilitada para este jogo
+  if (categoria === 'Jogadora' && !config.comJogadoras) {
+    return { error: 'Não há vagas para Jogadoras neste jogo.' }
+  }
+
   // Conta quantos oficiais já existem nessa categoria para decidir o status
   const oficiais = await prisma.jogador.count({
     where: { categoria, status: 'oficial' },
   })
 
-  const limite = VAGAS[categoria as keyof typeof VAGAS] ?? 12
+  // Vagas de Jogador dependem de comJogadoras; demais categorias têm limite fixo
+  const vagasJogador = config.comJogadoras ? VAGAS_JOGADOR_COM : VAGAS_JOGADOR_SEM
+  const limite =
+    categoria === 'Jogador' ? vagasJogador : (VAGAS_FIXAS[categoria as keyof typeof VAGAS_FIXAS] ?? vagasJogador)
   const status = oficiais < limite ? 'oficial' : 'espera'
 
   await prisma.jogador.create({ data: { nome, categoria, status } })
@@ -188,7 +199,7 @@ export async function cancelEnrollment(
   revalidatePath('/')
 }
 
-// Atualiza as configurações do jogo (data, horário limite, chave PIX e local)
+// Atualiza as configurações do jogo (data, horário limite, chave PIX, local e flag de jogadoras)
 export async function updateSettings(
   _prevState: ActionState,
   formData: FormData
@@ -197,10 +208,12 @@ export async function updateSettings(
   const chavePix = formData.get('chavePix') as string
   const dataJogo = formData.get('dataJogo') as string
   const local = formData.get('local') as string
+  // Checkbox envia 'on' quando marcado e null quando desmarcado
+  const comJogadoras = formData.get('comJogadoras') === 'on'
 
   await prisma.config.update({
     where: { id: 1 },
-    data: { horarioLimite, chavePix, dataJogo, local },
+    data: { horarioLimite, chavePix, dataJogo, local, comJogadoras },
   })
 
   revalidatePath('/')

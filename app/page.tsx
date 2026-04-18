@@ -53,8 +53,11 @@ export default async function HomePage() {
   // Jogadores na fila de espera (independente de categoria)
   const espera = allPlayers.filter((p) => p.status === 'espera')
 
-  type Categoria = 'Levantador' | 'Jogador'
-  const categorias: Categoria[] = ['Levantador', 'Jogador']
+  type Categoria = 'Levantador' | 'Jogador' | 'Jogadora'
+  // Jogadora só entra na lista quando o organizador habilitou vagas femininas
+  const categorias: Categoria[] = config.comJogadoras
+    ? ['Levantador', 'Jogadora', 'Jogador']
+    : ['Levantador', 'Jogador']
 
   return (
     <main className="page-wrapper">
@@ -83,7 +86,7 @@ export default async function HomePage() {
       {/* Formulário de inscrição — desabilita automaticamente após o horário limite */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="section-title">✍️ Insira seu nome na lista</div>
-        <EnrollForm inscricoesAbertas={inscricoesAbertas} />
+        <EnrollForm inscricoesAbertas={inscricoesAbertas} comJogadoras={config.comJogadoras} />
       </div>
 
       {/* Lista oficial separada por categoria (Levantador, Mulher, Homem) */}
@@ -99,6 +102,7 @@ export default async function HomePage() {
             categoria={cat}
             players={allPlayers.filter((p) => p.categoria === cat)}
             isAdmin={adminLogado}
+            comJogadoras={config.comJogadoras}
           />
         ))}
       </div>

@@ -25,6 +25,7 @@ export function WhatsAppShare({
 
     const categories: Array<[string, string]> = [
       ['Levantador', '🏐 Levantadores'],
+      ['Jogadora', '🏃‍♀️ Jogadoras'],
       ['Jogador', '🏃 Jogadores'],
     ]
 

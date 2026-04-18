@@ -16,6 +16,7 @@ type Config = {
   chavePix: string
   dataJogo: string
   local: string
+  comJogadoras: boolean
 }
 
 type HistoryPlayer = {
@@ -142,6 +143,21 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
             defaultValue={config.local}
             placeholder="Ex: Quadra Central, Rua X..."
           />
+        </div>
+        {/* Toggle que reserva 3 vagas para Jogadoras e reduz Jogadores de 15 para 12 */}
+        <div className="form-field">
+          <label className="form-label">Jogadoras neste Jogo</label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              name="comJogadoras"
+              defaultChecked={config.comJogadoras}
+              style={{ accentColor: 'var(--green)', width: 16, height: 16, cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-2)' }}>
+              Habilitar (3 vagas para Jogadoras, 12 para Jogadores)
+            </span>
+          </label>
         </div>
         <div className="form-field">
           <label className="form-label">Chave PIX</label>

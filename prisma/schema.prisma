@@ -33,7 +33,8 @@ model Config {
   horarioLimite String @map("horario_limite") @db.VarChar(10)
   chavePix      String @map("chave_pix") @db.VarChar(255)
   dataJogo      String @map("data_jogo") @db.VarChar(10)
-  local         String @map("local") @db.VarChar(255) @default("")
+  local         String  @map("local") @db.VarChar(255) @default("")
+  comJogadoras  Boolean @map("com_jogadoras") @default(false)
 
   @@map("config")
 }
