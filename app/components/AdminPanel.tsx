@@ -15,6 +15,7 @@ type Config = {
   horarioLimite: string
   chavePix: string
   dataJogo: string
+  local: string
 }
 
 type HistoryPlayer = {
@@ -123,13 +124,23 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
           />
         </div>
         <div className="form-field">
-          <label className="form-label">Horário Limite (HH:MM)</label>
+          <label className="form-label">Horário Limite de Inscrição (HH:MM)</label>
           <input
             name="horarioLimite"
             type="time"
             className="form-input"
             defaultValue={config.horarioLimite}
             required
+          />
+        </div>
+        <div className="form-field">
+          <label className="form-label">Local do Jogo</label>
+          <input
+            name="local"
+            type="text"
+            className="form-input"
+            defaultValue={config.local}
+            placeholder="Ex: Quadra Central, Rua X..."
           />
         </div>
         <div className="form-field">

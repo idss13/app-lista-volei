@@ -53,8 +53,8 @@ export default async function HomePage() {
   // Jogadores na fila de espera (independente de categoria)
   const espera = allPlayers.filter((p) => p.status === 'espera')
 
-  type Categoria = 'Levantador' | 'Mulher' | 'Homem'
-  const categorias: Categoria[] = ['Levantador', 'Mulher', 'Homem']
+  type Categoria = 'Levantador' | 'Jogador'
+  const categorias: Categoria[] = ['Levantador', 'Jogador']
 
   return (
     <main className="page-wrapper">
@@ -65,6 +65,8 @@ export default async function HomePage() {
         <div className="header-info">
           <span className="header-badge">📅 {formatDate(config.dataJogo)}</span>
           <span className="header-badge">🕐 até {config.horarioLimite}</span>
+          {/* Local do jogo — exibido somente quando cadastrado pelo organizador */}
+          {config.local && <span className="header-badge">📍 {config.local}</span>}
           <span className={`header-badge ${inscricoesAbertas ? 'open' : 'closed'}`}>
             {inscricoesAbertas ? (
               <>
@@ -119,6 +121,7 @@ export default async function HomePage() {
           players={allPlayers}
           dataJogo={config.dataJogo}
           horarioLimite={config.horarioLimite}
+          local={config.local}
         />
       </div>
 

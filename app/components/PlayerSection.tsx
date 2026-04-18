@@ -12,16 +12,15 @@ type Player = {
   status: string
 }
 
-type Categoria = 'Levantador' | 'Mulher' | 'Homem'
+type Categoria = 'Levantador' | 'Jogador'
 
 // Limite de vagas oficiais por categoria — espelha a constante em lib/actions.ts
-const VAGAS: Record<Categoria, number> = { Levantador: 3, Mulher: 3, Homem: 12 }
+const VAGAS: Record<Categoria, number> = { Levantador: 3, Jogador: 15 }
 
 // Rótulos com emoji exibidos nos badges de cada categoria
 const CATEGORY_LABELS: Record<Categoria, string> = {
   Levantador: '🏐 Levantador',
-  Mulher: '👩 Mulher',
-  Homem: '👨 Homem',
+  Jogador: '🏃 Jogador',
 }
 
 // Extrai as iniciais do nome (até 2 palavras) para exibir no avatar circular

@@ -40,8 +40,7 @@ export function EnrollForm({ inscricoesAbertas }: { inscricoesAbertas: boolean }
           style={{ flex: 2 }}
         />
         <select name="categoria" className="form-select" style={{ flex: 1 }}>
-          <option value="Homem">Homem</option>
-          <option value="Mulher">Mulher</option>
+          <option value="Jogador">Jogador</option>
           <option value="Levantador">Levantador</option>
         </select>
       </div>

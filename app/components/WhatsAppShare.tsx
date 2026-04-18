@@ -7,10 +7,12 @@ export function WhatsAppShare({
   players,
   dataJogo,
   horarioLimite,
+  local,
 }: {
   players: Player[]
   dataJogo: string
   horarioLimite: string
+  local: string
 }) {
   // Constrói o texto da mensagem organizado por categoria e fila de espera
   function buildMessage() {
@@ -19,10 +21,11 @@ export function WhatsAppShare({
 
     const lines: string[] = [`🏐 *Vôlei - Lista ${dateFormatted}*`, '']
 
+    if (local) lines.push(`📍 Local: ${local}`, '')
+
     const categories: Array<[string, string]> = [
       ['Levantador', '🏐 Levantadores'],
-      ['Mulher', '👩 Mulheres'],
-      ['Homem', '👨 Homens'],
+      ['Jogador', '🏃 Jogadores'],
     ]
 
     for (const [cat, label] of categories) {

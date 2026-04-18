@@ -46,34 +46,6 @@ prisma/
   schema.prisma           # Schema do banco de dados
 ```
 
-## Schema do banco
-
-```prisma
-model Jogador {
-  id        Int      @id @default(autoincrement())
-  nome      String                               // máx. 100 caracteres
-  categoria String                               // "Homem" | "Mulher" | "Levantador"
-  status    String                               // "oficial" | "espera"
-  criadoEm  DateTime @default(now())
-}
-
-model HistoricoJogador {
-  id          Int      @id @default(autoincrement())
-  nome        String
-  categoria   String
-  status      String
-  dataJogo    DateTime @db.Date                  // data da partida arquivada
-  arquivadoEm DateTime @default(now())
-}
-
-model Config {
-  id            Int    @id                       // sempre 1 — registro único
-  horarioLimite String                           // ex.: "20:00"
-  chavePix      String
-  dataJogo      String                           // formato YYYY-MM-DD
-}
-```
-
 ## Como rodar
 
 ### Pré-requisitos

@@ -7,8 +7,8 @@ import { cookies } from 'next/headers'
 // Tipo de retorno padrão das Server Actions — usado pelo useActionState nos componentes
 export type ActionState = { error?: string; success?: string } | null
 
-// Limite de vagas por categoria. Levantador e Mulher têm vagas reduzidas pelo formato do jogo.
-const VAGAS = { Levantador: 3, Mulher: 3, Homem: 12 } as const
+// Limite de vagas por categoria. Levantador tem vagas reduzidas pelo formato do jogo.
+const VAGAS = { Levantador: 3, Jogador: 15 } as const
 
 // Retorna a data atual no fuso horário de Brasília no formato YYYY-MM-DD (locale 'sv' = ISO)
 function getBrazilDateStr(): string {
@@ -36,6 +36,7 @@ export async function getOrInitConfig() {
         horarioLimite: '20:00',
         chavePix: 'Sua chave PIX aqui',
         dataJogo: getBrazilDateStr(),
+        local: '',
       },
     })
   }
@@ -187,7 +188,7 @@ export async function cancelEnrollment(
   revalidatePath('/')
 }
 
-// Atualiza as configurações do jogo (data, horário limite e chave PIX)
+// Atualiza as configurações do jogo (data, horário limite, chave PIX e local)
 export async function updateSettings(
   _prevState: ActionState,
   formData: FormData
@@ -195,10 +196,11 @@ export async function updateSettings(
   const horarioLimite = formData.get('horarioLimite') as string
   const chavePix = formData.get('chavePix') as string
   const dataJogo = formData.get('dataJogo') as string
+  const local = formData.get('local') as string
 
   await prisma.config.update({
     where: { id: 1 },
-    data: { horarioLimite, chavePix, dataJogo },
+    data: { horarioLimite, chavePix, dataJogo, local },
   })
 
   revalidatePath('/')
