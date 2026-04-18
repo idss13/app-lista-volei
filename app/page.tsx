@@ -7,12 +7,15 @@ import { WhatsAppShare } from './components/WhatsAppShare'
 import { AdminPanel } from './components/AdminPanel'
 import { ThemeToggle } from './components/ThemeToggle'
 
+// Desativa o cache estático — a página precisa sempre refletir o estado atual do banco
 export const dynamic = 'force-dynamic'
 
+// Retorna a data atual no fuso de Brasília (formato YYYY-MM-DD)
 function getBrazilDateStr() {
   return new Date().toLocaleDateString('sv', { timeZone: 'America/Sao_Paulo' })
 }
 
+// Retorna a hora atual no fuso de Brasília (formato HH:MM)
 function getBrazilTimeStr() {
   return new Date().toLocaleTimeString('pt-BR', {
     timeZone: 'America/Sao_Paulo',
@@ -22,14 +25,17 @@ function getBrazilTimeStr() {
   })
 }
 
+// Converte YYYY-MM-DD para DD/MM/YYYY para exibição ao usuário
 function formatDate(dateStr: string) {
   const [y, m, d] = dateStr.split('-')
   return `${d}/${m}/${y}`
 }
 
 export default async function HomePage() {
+  // Arquiva automaticamente se o dia do jogo já passou antes de carregar qualquer dado
   await checkAndAutoArchive()
 
+  // Busca configuração, jogadores e status de admin em paralelo para minimizar latência
   const [config, allPlayers, adminLogado] = await Promise.all([
     getOrInitConfig(),
     prisma.jogador.findMany({ orderBy: { criadoEm: 'asc' } }),
@@ -38,10 +44,13 @@ export default async function HomePage() {
 
   const hoje = getBrazilDateStr()
   const agora = getBrazilTimeStr()
+
+  // Inscrições abertas se: a data do jogo ainda não chegou OU chegou mas ainda não passou o horário
   const inscricoesAbertas =
     hoje < config.dataJogo ||
     (hoje === config.dataJogo && agora < config.horarioLimite)
 
+  // Jogadores na fila de espera (independente de categoria)
   const espera = allPlayers.filter((p) => p.status === 'espera')
 
   type Categoria = 'Levantador' | 'Mulher' | 'Homem'
@@ -49,7 +58,7 @@ export default async function HomePage() {
 
   return (
     <main className="page-wrapper">
-      {/* Header */}
+      {/* Header com data do jogo, horário limite e indicador de inscrições abertas/fechadas */}
       <header className="header">
         <span className="header-emoji">🏐</span>
         <h1 className="header-title">Lista de Presença — Vôlei</h1>
@@ -69,13 +78,13 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* Enrollment Form */}
+      {/* Formulário de inscrição — desabilita automaticamente após o horário limite */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="section-title">✍️ Insira seu nome na lista</div>
         <EnrollForm inscricoesAbertas={inscricoesAbertas} />
       </div>
 
-      {/* Player Lists */}
+      {/* Lista oficial separada por categoria (Levantador, Mulher, Homem) */}
       <div
         className="card"
         style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 20 }}
@@ -92,19 +101,19 @@ export default async function HomePage() {
         ))}
       </div>
 
-      {/* Waitlist */}
+      {/* Fila de espera — só renderiza se houver jogadores aguardando */}
       {espera.length > 0 && (
         <div className="card" style={{ marginBottom: 16 }}>
           <WaitlistSection players={espera} isAdmin={adminLogado} />
         </div>
       )}
 
-      {/* PIX */}
+      {/* Informações de pagamento via PIX */}
       <div className="card" style={{ marginBottom: 16 }}>
         <PixSection chavePix={config.chavePix} />
       </div>
 
-      {/* WhatsApp Share */}
+      {/* Botão para compartilhar a lista formatada no WhatsApp */}
       <div className="card" style={{ marginBottom: 16 }}>
         <WhatsAppShare
           players={allPlayers}
@@ -113,8 +122,10 @@ export default async function HomePage() {
         />
       </div>
 
-      {/* Admin Panel */}
+      {/* FAB do painel do organizador (canto inferior direito) */}
       <AdminPanel adminLogado={adminLogado} config={config} />
+
+      {/* Botão de alternância de tema claro/escuro (canto inferior esquerdo) */}
       <ThemeToggle />
     </main>
   )

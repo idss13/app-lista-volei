@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vôlei — Lista de Presença
 
-## Getting Started
+Aplicação web para gerenciar inscrições em jogos de vôlei. Permite que jogadores entrem na lista, controla o limite de vagas por categoria, arquiva partidas encerradas e compartilha a lista pelo WhatsApp.
 
-First, run the development server:
+## Funcionalidades
+
+- **Inscrição de jogadores** — nome e categoria (Homem, Mulher, Levantador)
+- **Controle de vagas** — Homem: 12 vagas · Mulher: 3 · Levantador: 3
+- **Fila de espera** — quando a categoria está cheia o jogador entra na fila; ao remover um oficial o primeiro da fila é promovido automaticamente
+- **Encerramento automático** — inscrições fecham no horário limite configurado pelo organizador
+- **Arquivamento automático** — após o dia do jogo, a lista é arquivada e a data avança para a próxima semana
+- **Painel do organizador** — configura data, horário limite e chave PIX; acessa o histórico de partidas
+- **PIX** — exibe e copia a chave de pagamento da quadra
+- **Compartilhamento** — envia a lista formatada para o WhatsApp
+- **Tema claro/escuro** — persiste no localStorage
+
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Linguagem | TypeScript 5 |
+| Banco de dados | PostgreSQL via [Neon](https://neon.tech) |
+| ORM | Prisma 5 |
+| Animações | Framer Motion 12 |
+| Notificações | Sonner 2 |
+
+## Estrutura de arquivos
+
+```
+app/
+  layout.tsx              # Layout raiz — tema, metadados, Toaster global
+  page.tsx                # Página principal (Server Component)
+  globals.css             # Design system — variáveis CSS, temas, componentes
+  components/
+    EnrollForm.tsx        # Formulário de inscrição
+    PlayerSection.tsx     # Lista oficial e fila de espera
+    PixSection.tsx        # Exibição da chave PIX
+    WhatsAppShare.tsx     # Botão de compartilhamento
+    AdminPanel.tsx        # FAB + modal de login e configurações
+    ThemeToggle.tsx       # Alternância de tema
+lib/
+  prisma.ts               # Singleton do PrismaClient
+  actions.ts              # Todas as Server Actions
+prisma/
+  schema.prisma           # Schema do banco de dados
+```
+
+## Schema do banco
+
+```prisma
+model Jogador {
+  id        Int      @id @default(autoincrement())
+  nome      String                               // máx. 100 caracteres
+  categoria String                               // "Homem" | "Mulher" | "Levantador"
+  status    String                               // "oficial" | "espera"
+  criadoEm  DateTime @default(now())
+}
+
+model HistoricoJogador {
+  id          Int      @id @default(autoincrement())
+  nome        String
+  categoria   String
+  status      String
+  dataJogo    DateTime @db.Date                  // data da partida arquivada
+  arquivadoEm DateTime @default(now())
+}
+
+model Config {
+  id            Int    @id                       // sempre 1 — registro único
+  horarioLimite String                           // ex.: "20:00"
+  chavePix      String
+  dataJogo      String                           // formato YYYY-MM-DD
+}
+```
+
+## Como rodar
+
+### Pré-requisitos
+
+- Node.js 18+
+- Banco PostgreSQL (ex.: Neon — plano gratuito funciona)
+
+### Configuração
+
+1. Instale as dependências:
+
+```bash
+npm install
+```
+
+2. Crie o arquivo `.env.local` na raiz do projeto:
+
+```env
+DATABASE_URL="postgresql://usuario:senha@host/banco?sslmode=require"
+ADMIN_PASSWORD="sua_senha_secreta"
+```
+
+3. Aplique o schema no banco:
+
+```bash
+npx prisma db push
+```
+
+4. Inicie o servidor de desenvolvimento:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build para produção
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+O comando `build` executa `prisma generate` antes do Next.js para garantir que o cliente esteja atualizado.
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+A aplicação pode ser publicada no [Vercel](https://vercel.com) diretamente do repositório. Configure as variáveis de ambiente `DATABASE_URL` e `ADMIN_PASSWORD` no painel do projeto.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Painel do organizador
 
-## Deploy on Vercel
+O botão 🔒 no canto inferior direito abre o painel restrito. A senha padrão é `admin123` — troque pela variável `ADMIN_PASSWORD` em produção.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+No painel é possível:
+- Alterar a data do próximo jogo
+- Alterar o horário limite de inscrições
+- Atualizar a chave PIX
+- Consultar o histórico de partidas anteriores

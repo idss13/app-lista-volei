@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   description: 'Lista de presença para o jogo de vôlei',
 }
 
+// Script inline executado antes da hidratação para aplicar o tema salvo no localStorage.
+// Sem isso, a página pisca com o tema padrão (dark) antes de ler a preferência do usuário.
+// Deve ficar no <head> e ser síncrono — por isso usa dangerouslySetInnerHTML.
 const themeScript = `
   (function() {
     var t = localStorage.getItem('theme');
@@ -17,12 +20,15 @@ const themeScript = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
+    // suppressHydrationWarning necessário porque o script acima modifica data-theme
+    // antes da hidratação, causando diferença entre o HTML do servidor e do cliente
     <html lang="pt-BR" data-theme="dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
         {children}
+        {/* Toaster global para notificações de sucesso/erro em todas as Server Actions */}
         <Toaster richColors position="top-center" duration={3500} />
       </body>
     </html>

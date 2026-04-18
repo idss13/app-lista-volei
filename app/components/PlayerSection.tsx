@@ -14,14 +14,17 @@ type Player = {
 
 type Categoria = 'Levantador' | 'Mulher' | 'Homem'
 
+// Limite de vagas oficiais por categoria — espelha a constante em lib/actions.ts
 const VAGAS: Record<Categoria, number> = { Levantador: 3, Mulher: 3, Homem: 12 }
 
+// Rótulos com emoji exibidos nos badges de cada categoria
 const CATEGORY_LABELS: Record<Categoria, string> = {
   Levantador: '🏐 Levantador',
   Mulher: '👩 Mulher',
   Homem: '👨 Homem',
 }
 
+// Extrai as iniciais do nome (até 2 palavras) para exibir no avatar circular
 function getInitials(nome: string) {
   return nome
     .trim()
@@ -31,6 +34,8 @@ function getInitials(nome: string) {
     .join('')
 }
 
+// Card individual de um jogador, com animação de entrada/saída via Framer Motion.
+// O parâmetro posicaoEspera é exibido apenas na lista de espera (1º, 2º, etc.).
 function PlayerCard({
   player,
   isAdmin,
@@ -41,6 +46,8 @@ function PlayerCard({
   posicaoEspera?: number
 }) {
   const [isPending, startTransition] = useTransition()
+
+  // A classe CSS do avatar varia por categoria (cor) ou 'espera' (âmbar)
   const cat = player.categoria.toLowerCase() as string
   const avatarClass = player.status === 'espera' ? 'espera' : cat
 
@@ -56,6 +63,7 @@ function PlayerCard({
       className="player-card"
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
+      // Colapsa altura e margens ao sair para que a lista acima não "pule"
       exit={{ opacity: 0, x: -16, height: 0, marginBottom: 0, padding: 0 }}
       transition={{ duration: 0.25 }}
       layout
@@ -74,6 +82,8 @@ function PlayerCard({
   )
 }
 
+// Seção de uma categoria na lista oficial.
+// Exibe badge, contador de vagas e barra de progresso proporcional ao preenchimento.
 export function PlayerSection({
   categoria,
   players,
@@ -100,6 +110,7 @@ export function PlayerSection({
         </span>
       </div>
 
+      {/* Barra de progresso — fica âmbar quando a categoria está cheia */}
       <div className="slot-bar-wrapper">
         <div className="slot-bar">
           <div
@@ -109,6 +120,7 @@ export function PlayerSection({
         </div>
       </div>
 
+      {/* AnimatePresence com mode="popLayout" anima entradas e saídas sem deslocar itens irmãos */}
       <div className="player-list">
         <AnimatePresence mode="popLayout">
           {oficiais.length === 0 ? (
@@ -124,6 +136,7 @@ export function PlayerSection({
   )
 }
 
+// Seção da fila de espera, agrupada por categoria com posição numérica (1º, 2º, etc.)
 export function WaitlistSection({
   players,
   isAdmin,
@@ -133,6 +146,7 @@ export function WaitlistSection({
 }) {
   if (players.length === 0) return null
 
+  // Agrupa os jogadores por categoria mantendo a ordem original (FIFO)
   const byCategory: Record<string, Player[]> = {}
   for (const p of players) {
     if (!byCategory[p.categoria]) byCategory[p.categoria] = []

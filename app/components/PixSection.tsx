@@ -2,6 +2,7 @@
 
 import { toast } from 'sonner'
 
+// Exibe a chave PIX do organizador e permite copiá-la com um clique
 export function PixSection({ chavePix }: { chavePix: string }) {
   function handleCopy() {
     navigator.clipboard.writeText(chavePix).then(() => {
@@ -15,6 +16,7 @@ export function PixSection({ chavePix }: { chavePix: string }) {
       <p className="pix-subtitle">
         Realize o pagamento via PIX para garantir sua vaga.
       </p>
+      {/* O botão inteiro é clicável para facilitar o toque em mobile */}
       <button className="pix-key-box" onClick={handleCopy} type="button">
         <span className="pix-key-text">{chavePix}</span>
         <span className="pix-copy-icon" title="Copiar">📋</span>

@@ -24,6 +24,8 @@ type HistoryPlayer = {
   status: string
 }
 
+// Formulário de autenticação do organizador.
+// Após login bem-sucedido, fecha o modal para o painel de configurações aparecer na próxima abertura.
 function LoginForm({ onClose }: { onClose: () => void }) {
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(loginAdmin, null)
 
@@ -52,6 +54,8 @@ function LoginForm({ onClose }: { onClose: () => void }) {
   )
 }
 
+// Formulário de configurações exibido quando o organizador está logado.
+// Carrega as datas do histórico ao montar; busca os jogadores ao selecionar uma data.
 function SettingsForm({ config, onClose }: { config: Config; onClose: () => void }) {
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     updateSettings,
@@ -68,6 +72,7 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
     if (state?.error) toast.error(state.error)
   }, [state])
 
+  // Carrega as datas disponíveis no histórico assim que o painel abre
   useEffect(() => {
     startHistoryTransition(async () => {
       const dates = await getHistoricoData()
@@ -75,6 +80,7 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
     })
   }, [])
 
+  // Limpa o histórico exibido se nenhuma data for selecionada; caso contrário busca os dados
   function handleDateChange(date: string) {
     setSelectedDate(date)
     if (!date) { setHistoryData([]); return }
@@ -92,6 +98,7 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
     })
   }
 
+  // Converte YYYY-MM-DD para DD/MM/YYYY para exibição no select do histórico
   function formatDate(dateStr: string) {
     const [y, m, d] = dateStr.split('-')
     return `${d}/${m}/${y}`
@@ -103,6 +110,7 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
         <span>✅</span> Modo Organizador Ativo
       </div>
 
+      {/* Formulário principal de configurações do jogo */}
       <form action={formAction} className="admin-form">
         <div className="form-field">
           <label className="form-label">Data do Jogo</label>
@@ -141,6 +149,7 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
 
       <div className="divider" style={{ margin: '20px 0' }} />
 
+      {/* Seção de histórico — somente leitura, não altera dados */}
       <div>
         <div className="section-title" style={{ fontSize: '0.9rem', marginBottom: 10 }}>
           📚 Histórico de Partidas
@@ -179,6 +188,7 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
                       <td>{p.nome}</td>
                       <td>{p.categoria}</td>
                       <td>
+                        {/* Chip colorido: verde para oficial, âmbar para espera */}
                         <span className={`status-chip ${p.status}`}>{p.status}</span>
                       </td>
                     </tr>
@@ -204,6 +214,8 @@ function SettingsForm({ config, onClose }: { config: Config; onClose: () => void
   )
 }
 
+// FAB (Floating Action Button) que abre um modal com login ou configurações,
+// dependendo do estado de autenticação. Posicionado no canto inferior direito pela CSS.
 export function AdminPanel({
   adminLogado,
   config,
@@ -225,6 +237,7 @@ export function AdminPanel({
       </button>
 
       {isOpen && (
+        // Clicar fora do modal (no overlay) também o fecha
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setIsOpen(false)}>
           <div className="modal">
             <div className="modal-header">

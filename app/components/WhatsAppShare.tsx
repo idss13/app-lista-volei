@@ -2,6 +2,7 @@
 
 type Player = { nome: string; categoria: string; status: string }
 
+// Botão que formata a lista de jogadores e abre o WhatsApp Web com a mensagem pronta
 export function WhatsAppShare({
   players,
   dataJogo,
@@ -11,6 +12,7 @@ export function WhatsAppShare({
   dataJogo: string
   horarioLimite: string
 }) {
+  // Constrói o texto da mensagem organizado por categoria e fila de espera
   function buildMessage() {
     const [year, month, day] = dataJogo.split('-')
     const dateFormatted = `${day}/${month}/${year}`
@@ -31,6 +33,7 @@ export function WhatsAppShare({
       lines.push('')
     }
 
+    // Fila de espera aparece ao final, com a categoria entre parênteses
     const espera = players.filter((p) => p.status === 'espera')
     if (espera.length > 0) {
       lines.push('*⏱️ Lista de Espera:*')
@@ -42,6 +45,7 @@ export function WhatsAppShare({
     return lines.join('\n')
   }
 
+  // wa.me/?text= abre o WhatsApp Web/app com a mensagem pré-preenchida
   function handleShare() {
     const text = encodeURIComponent(buildMessage())
     window.open(`https://wa.me/?text=${text}`, '_blank')
